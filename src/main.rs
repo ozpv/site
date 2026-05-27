@@ -5,17 +5,13 @@ use axum::{
     handler::HandlerWithoutStateExt,
     http::{StatusCode, header},
     response::{Html, IntoResponse, Response},
-    routing::get_service,
 };
 use site::{env::Env, state::AppState};
 use std::{fs, path::PathBuf, time::Duration};
 use tokio::net::TcpListener;
 use tower::util::ServiceExt;
 use tower_http::{
-    compression::CompressionLayer,
-    services::{ServeDir, ServeFile},
-    timeout::TimeoutLayer,
-    trace::TraceLayer,
+    compression::CompressionLayer, services::ServeDir, timeout::TimeoutLayer, trace::TraceLayer,
 };
 
 const ERR: (StatusCode, Html<&'static str>) =
@@ -69,7 +65,19 @@ async fn inject(
     (parts, Body::from(string)).into_response()
 }
 
-async fn html_files(State(state): State<AppState>, mut req: Request) -> impl IntoResponse {
+async fn get_file(State(state): State<AppState>, mut req: Request) -> impl IntoResponse {
+    if req.uri().path() == "/" {
+        *req.uri_mut() = "/index.html".parse().map_err(|_| ERR)?;
+
+        return ServeDir::new(state.get_dist_dir().as_ref())
+            .precompressed_br()
+            .precompressed_gzip()
+            .fallback(not_found.into_service())
+            .oneshot(req)
+            .await
+            .map_err(|_| ERR);
+    }
+
     let mut file_path = PathBuf::from(req.uri().path());
 
     if file_path.extension().is_none() {
@@ -84,12 +92,6 @@ async fn html_files(State(state): State<AppState>, mut req: Request) -> impl Int
         .parse()
         .map_err(|_| ERR)?;
 
-    println!(
-        "{}{}",
-        state.get_dist_dir().as_ref().display(),
-        req.uri().path()
-    );
-
     ServeDir::new(state.get_dist_dir().as_ref())
         .precompressed_br()
         .precompressed_gzip()
@@ -99,12 +101,11 @@ async fn html_files(State(state): State<AppState>, mut req: Request) -> impl Int
         .map_err(|_| ERR)
 }
 
-// TODO: move all of this to build.rs
-async fn html_inject_head_nav_footer(
+async fn get_try_inject_head_nav_footer(
     State(state): State<AppState>,
     req: Request,
 ) -> impl IntoResponse {
-    let res = html_files(State(state.clone()), req).await.into_response();
+    let res = get_file(State(state.clone()), req).await.into_response();
     let res = inject(res, "head.html", "<html lang=\"en\">", state.clone())
         .await
         .into_response();
@@ -131,11 +132,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Listening on http://{site_addr}/");
 
     let router = Router::new()
-        .route(
-            "/",
-            get_service(ServeFile::new(dist_dir.join("index.html"))),
-        )
-        .fallback(html_inject_head_nav_footer)
+        // every route is handled through fallback
+        .fallback(get_try_inject_head_nav_footer)
         .layer(CompressionLayer::new().gzip(true))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
@@ -145,5 +143,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(AppState::new(dist_dir));
 
     axum::serve(listener, router).await?;
+
     Ok(())
 }
