@@ -32,6 +32,16 @@ pre {
   border-radius: 4px;
 }
 
+
+.width {
+	max-width: 720px;
+
+	@media (width <= 720px) {
+		overflow: clip;
+		max-width: 90vw;
+	}
+}
+
 .center {
 	display: flex;
 	align-items: center;
