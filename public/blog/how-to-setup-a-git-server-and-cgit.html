@@ -8,6 +8,7 @@
 <p>This guide is a modified version of the <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Setting-Up-the-Server">git book</a> instructions for Debian specifically.<br>
 It also includes setting up a cgit web front-end that allows you to view your git repositories conveniently on the web just like <a href="https://git.haemolacriaa.com/">I do</a>.</p>
 <p>I'm assuming you already have a VPS with Debian installed and a domain purchased with proper DNS records pointing the git subdomain to your server IP. If not, you should research what all that means before continuing because you'll be unable to follow along.</p>
+<p>Posted: Saturday May 30, 2026 2:45:23 PM</p>
 <h2>Setting up a Git Server</h2>
 <p>The very first thing to do is connect to your server, install git, create a git user, and set up ssh for remote access to that git user.</p>
 <pre><code>ssh root@example.com
@@ -19,7 +20,7 @@ cd
 mkdir .ssh &amp;&amp; chmod 700 .ssh
 touch .ssh/authorized_keys &amp;&amp; chmod 600 .ssh/authorized_keys
 </code></pre>
-<p>To copy your home computer's ssh id to your server (assuming you have one generated), run this command on your home computer:</p>
+<p>To copy your home computer's ssh id to your server (assuming you have one generated), run this command:</p>
 <pre><code>ssh-copy-id git@example.com
 </code></pre>
 <p>Now let's create an example git repository and try to push from our home computer.</p>
@@ -72,12 +73,12 @@ Connection to example.com closed.
 </code></pre>
 <p>Perfect!</p>
 <h3>Next Steps</h3>
-<p>At this point, your git server is fully usable, and you can begin to push, pull, etc. However, you might also want a front-end to browse your repositories and make them discoverable on the web.</p>
-<h2>How to Set up Cgit for a Git Web Front-End</h2>
+<p>At this point, your git server is fully usable. You can begin to push, pull, etc. However, you might also want a front-end to browse your repositories and make them discoverable on the web.</p>
+<h2>How to Set up cgit for a Git Web Front-End</h2>
 <p>Install the necessary packages:</p>
 <pre><code>apt install nginx certbot fcgiwrap cgit
 </code></pre>
-<p>Generate a tls certificate for your git domain, then create a cron job to auto-renew it.</p>
+<p>Generate a TLS certificate for your git domain and create a cron job to auto-renew it.</p>
 <pre><code>certbot certonly --standalone --register-unsafely-without-email -d git.example.com
 crontab -e
 </code></pre>
@@ -127,7 +128,7 @@ crontab -e
 # see cgitrc(5) for details
 
 # copy your logo into /usr/share/cgit and change the file name here
-logo=/logo.webp
+logo=/bunny.webp
 
 root-title=example
 root-desc=a web front-end for my git repositories
@@ -135,7 +136,7 @@ root-desc=a web front-end for my git repositories
 favicon=
 css=/cgit.css
 
-# for clean repository names
+# repository names
 remove-suffix=1
 
 clone-prefix=https://git.example.com

@@ -114,7 +114,9 @@ async fn get_try_inject_head_nav_footer(
         .await
         .into_response();
 
-    inject(res, "footer.html", "</main>", state.clone()).await.into_response()
+    inject(res, "footer.html", "</main>", state.clone())
+        .await
+        .into_response()
 }
 
 #[tokio::main]
