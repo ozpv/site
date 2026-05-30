@@ -54,3 +54,29 @@
 		flex-direction: row;
 	}
 }
+
+.link-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-image: linear-gradient(to bottom right, #f9e2af, #b4befe);
+	border-radius: .5rem;
+	padding: 1px;
+	margin-top: 1rem;
+}
+
+.button {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	border-radius: .5rem;
+	padding-bottom: 1.25rem;
+	padding-top: 1.25rem;
+	background-color: black;
+	width: 20rem;
+}
+
+.button:hover {
+	background-color: rgb(0, 0, 0, 0);
+}

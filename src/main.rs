@@ -27,15 +27,6 @@ async fn inject(
     after: &'static str,
     state: AppState,
 ) -> impl IntoResponse {
-    if !res
-        .headers()
-        .get(header::CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value.contains("text/html"))
-    {
-        return res;
-    }
-
     let (parts, body) = res.into_parts();
 
     let Ok(body) = body::to_bytes(body, 5_000_000).await else {
@@ -106,6 +97,16 @@ async fn get_try_inject_head_nav_footer(
     req: Request,
 ) -> impl IntoResponse {
     let res = get_file(State(state.clone()), req).await.into_response();
+
+    if !res
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.contains("text/html"))
+    {
+        return res;
+    }
+
     let res = inject(res, "head.html", "<html lang=\"en\">", state.clone())
         .await
         .into_response();
@@ -113,7 +114,7 @@ async fn get_try_inject_head_nav_footer(
         .await
         .into_response();
 
-    inject(res, "footer.html", "</main>", state.clone()).await
+    inject(res, "footer.html", "</main>", state.clone()).await.into_response()
 }
 
 #[tokio::main]
