@@ -1,0 +1,140 @@
+<h1>How to self-host a git server</h1>
+<p>This guide is pretty much a modified version of the <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Setting-Up-the-Server">git book</a> instructions for Debian specifically.<br>
+It also includes setting up a cgit web frontend that allows you to view your git repositories conveniently on the web.</p>
+<p>I'm assuming you already have a VPS with Debian installed and a domain purchased with proper DNS records pointing git.example.com to your server IP. If not, I recommend you do research on what all that means.</p>
+<h2>Setting up a git server</h2>
+<pre><code>ssh root@example.com
+apt install git
+sudo adduser git
+usermod -aG sudo git
+su git
+cd
+mkdir .ssh &amp;&amp; chmod 700 .ssh
+touch .ssh/authorized_keys &amp;&amp; chmod 600 .ssh/authorized_keys
+</code></pre>
+<p>To copy your home computer's ssh id to your server (assuming you have one generated), run this command on your home computer:</p>
+<pre><code>ssh-copy-id git@example.com
+</code></pre>
+<p>Now let's create an example git repository and try to push from our home computer.</p>
+<p>On your server, as the git user, run these commands to create a repo.</p>
+<pre><code>sudo mkdir /srv/git
+cd /srv/git
+sudo mkdir repo.git
+cd repo.git
+git init --bare
+</code></pre>
+<p>Ensure the repo is owned by the git user and group. Otherwise, git commands on your home computer error.</p>
+<pre><code>chown -R git:git /srv/git
+</code></pre>
+<p>On your home computer, setup a git repo as well.</p>
+<pre><code>mkdir repo
+cd repo
+git init --bare
+git remote add origin git@example.com:/srv/git/repo.git
+</code></pre>
+<p>Make some changes. For example, create a file, and try git push. It should work.</p>
+<pre><code>touch file.txt
+git add .
+git commit -m "changes"
+git push origin master
+</code></pre>
+<h3>Preventing shell access</h3>
+<p>The final step is to prevent a remote login as <a href="mailto:git@example.com">git@example.com</a> from acquiring a normal shell on the server.<br>
+This step isn't strictly necessary and can probably be skipped if you're the only one using git on your server.</p>
+<p>First, check the location of the git shell. Then, append the output to /etc/shells.</p>
+<pre><code>which git-shell
+vim /etc/shells
+G
+o
+/usr/bin/git-shell
+:wq
+</code></pre>
+<p>Now set the shell for the git user to git-shell.</p>
+<pre><code>sudo chsh git -s $(which git-shell)
+</code></pre>
+<p>Finally, prevent port forwarding by prepending this to each key in ~/.ssh/authorized_keys in the git user directory.</p>
+<pre><code>no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty
+</code></pre>
+<p>Attempting to login as git using ssh <a href="mailto:git@example.com">git@example.com</a> should output an error and close the connection, such as this one:</p>
+<pre><code>fatal: Interactive git shell is not enabled.
+hint: ~/git-shell-commands should exist and have read and execute access.
+Connection to example.com closed.
+</code></pre>
+<p>Perfect!</p>
+<h3>Conclusion</h3>
+<p>At this point, your git server is fully usable, and you can begin to push, pull, etc. However, you might also want a frontend to browse your repositories and make them discoverable on the web.</p>
+<h2>How to setup cgit for a git web frontend</h2>
+<pre><code>apt install nginx certbot fcgiwrap cgit
+</code></pre>
+<p>Generate a tls certificate for your git domain, then create a cron job to auto renew it.</p>
+<pre><code>certbot certonly --standalone --register-unsafely-without-email -d git.example.com
+crontab -e
+</code></pre>
+<p>Append this line to the file crontab opens:</p>
+<pre><code>0 0 1 * * certbot --nginx renew
+</code></pre>
+<p>Next, edit the nginx config. This is an example of what works for me. My config file is located at /etc/nginx/nginx.conf.</p>
+<pre><code>http {
+	include /etc/nginx/mime.types;
+	default_type application/octet-stream;
+
+	server {
+		listen 443 ssl;
+		listen [::]:443 ssl;
+
+		ssl_certificate "/etc/letsencrypt/live/git.example.com/fullchain.pem";
+		ssl_certificate_key "/etc/letsencrypt/live/git.example.com/privkey.pem";
+		ssl_trusted_certificate "/etc/letsencrypt/live/git.example.com/chain.pem";
+
+		server_name git.example.com;
+
+		root /usr/share/cgit;
+
+		location ~* ^.+\.(css|js|png|ico)$ {
+			root /usr/share/cgit;
+			expires 30d;
+		}
+
+		location / {
+			try_files $uri @cgit;
+		}
+
+		location @cgit {
+			include fastcgi_params;
+			fastcgi_param SCRIPT_FILENAME /usr/lib/cgit/cgit.cgi;
+			fastcgi_param PATH_INFO $uri;
+			fastcgi_param QUERY_STRING $args;
+			fastcgi_param HTTP_HOST $server_name;
+			fastcgi_pass unix:/run/fcgiwrap.socket;
+		}
+	}
+}
+</code></pre>
+<p>Now it's time to edit the cgit config to make the frontend your own. Mine is located at /etc/cgitrc. Here's an example of my config:</p>
+<pre><code>#
+# cgit config
+# see cgitrc(5) for details
+
+# copy your logo into /usr/share/cgit and change the file name here
+logo=/logo.webp
+
+root-title=example
+root-desc=a web frontend for my git repositories
+
+favicon=
+css=/cgit.css
+
+# for clean repository names
+remove-suffix=1
+
+clone-prefix=https://git.example.com
+
+scan-path=/srv/git/
+virtual-root=/
+</code></pre>
+<p>It's possible you need to add the nginx user to the www-data group (root if you never created one). Otherwise, the frontend will display 502 Bad Gateway instead of cgit.</p>
+<p>Run this command to do so:</p>
+<pre><code>usermod -aG www-data &lt;nginx-user&gt;
+</code></pre>
+<h2>Closing</h2>
+<p>If you followed the steps, you now have a working self-hosted git server and read-only frontend to view and share your repositories. Personally, I feel like this was a pretty simple setup and is definitely worth investing time into for the purpose of decentralization (as long as you chose something like AWS as your cloud provider lol).</p>
