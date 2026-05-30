@@ -59,29 +59,21 @@ async fn inject(
 async fn get_file(State(state): State<AppState>, mut req: Request) -> impl IntoResponse {
     if req.uri().path() == "/" {
         *req.uri_mut() = "/index.html".parse().map_err(|_| ERR)?;
+    } else {
+        let mut file_path = PathBuf::from(req.uri().path());
 
-        return ServeDir::new(state.get_dist_dir().as_ref())
-            .precompressed_br()
-            .precompressed_gzip()
-            .fallback(not_found.into_service())
-            .oneshot(req)
-            .await
-            .map_err(|_| ERR);
+        if file_path.extension().is_none() {
+            file_path.set_extension("html");
+        }
+
+        *req.uri_mut() = file_path
+            .to_str()
+            // in case this were to run on a windows machine
+            .map(|s| s.replace('\\', "/"))
+            .ok_or(ERR)?
+            .parse()
+            .map_err(|_| ERR)?;
     }
-
-    let mut file_path = PathBuf::from(req.uri().path());
-
-    if file_path.extension().is_none() {
-        file_path.set_extension("html");
-    }
-
-    *req.uri_mut() = file_path
-        .to_str()
-        // in case this were to run on a windows machine
-        .map(|s| s.replace('\\', "/"))
-        .ok_or(ERR)?
-        .parse()
-        .map_err(|_| ERR)?;
 
     ServeDir::new(state.get_dist_dir().as_ref())
         .precompressed_br()
