@@ -1,0 +1,12 @@
+[Unit]
+Description=webserver for haemolacriaa.com
+
+[Service]
+Type=simple
+EnvironmentFile=/srv/site/VARFILE
+ExecStart=/srv/site/site
+WorkingDirectory=/srv/site
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
