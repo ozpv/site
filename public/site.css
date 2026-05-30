@@ -1,3 +1,9 @@
+pre {
+  background-color: ghostwhite;
+  padding: 12px;
+  border-radius: 4px;
+}
+
 .center {
 	display: flex;
 	align-items: center;

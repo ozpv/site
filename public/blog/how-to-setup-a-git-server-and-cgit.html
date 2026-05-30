@@ -1,8 +1,15 @@
-<h1>How to self-host a git server</h1>
-<p>This guide is pretty much a modified version of the <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Setting-Up-the-Server">git book</a> instructions for Debian specifically.<br>
-It also includes setting up a cgit web frontend that allows you to view your git repositories conveniently on the web.</p>
-<p>I'm assuming you already have a VPS with Debian installed and a domain purchased with proper DNS records pointing git.example.com to your server IP. If not, I recommend you do research on what all that means.</p>
-<h2>Setting up a git server</h2>
+<!DOCTYPE html>
+<html lang="en">
+	<body>
+		<main style="min-height: 100vh;">
+			<div class="center">
+			<div style="max-width: 720px;">
+<h1 style="text-align: center;">How to Self-Host a Git Server</h1>
+<p>This guide is a modified version of the <a href="https://git-scm.com/book/en/v2/Git-on-the-Server-Setting-Up-the-Server">git book</a> instructions for Debian specifically.<br>
+It also includes setting up a cgit web front-end that allows you to view your git repositories conveniently on the web just like <a href="https://git.haemolacriaa.com/">I do</a>.</p>
+<p>I'm assuming you already have a VPS with Debian installed and a domain purchased with proper DNS records pointing the git subdomain to your server IP. If not, you should research what all that means before continuing because you'll be unable to follow along.</p>
+<h2>Setting up a Git Server</h2>
+<p>The very first thing to do is connect to your server, install git, create a git user, and set up ssh for remote access to that git user.</p>
 <pre><code>ssh root@example.com
 apt install git
 sudo adduser git
@@ -23,10 +30,10 @@ sudo mkdir repo.git
 cd repo.git
 git init --bare
 </code></pre>
-<p>Ensure the repo is owned by the git user and group. Otherwise, git commands on your home computer error.</p>
+<p>Ensure the repo (and really the entire git folder) is owned by the git user and group. Otherwise, git commands on your home computer will error.</p>
 <pre><code>chown -R git:git /srv/git
 </code></pre>
-<p>On your home computer, setup a git repo as well.</p>
+<p>On your home computer, set up a git repo as well.</p>
 <pre><code>mkdir repo
 cd repo
 git init --bare
@@ -38,7 +45,10 @@ git add .
 git commit -m "changes"
 git push origin master
 </code></pre>
-<h3>Preventing shell access</h3>
+<p>The git user is no longer required to be a part of the sudo group. We just needed it for a few of the commands above. Remove it.</p>
+<pre><code>deluser git sudo
+</code></pre>
+<h3>Preventing Shell Access</h3>
 <p>The final step is to prevent a remote login as <a href="mailto:git@example.com">git@example.com</a> from acquiring a normal shell on the server.<br>
 This step isn't strictly necessary and can probably be skipped if you're the only one using git on your server.</p>
 <p>First, check the location of the git shell. Then, append the output to /etc/shells.</p>
@@ -61,12 +71,13 @@ hint: ~/git-shell-commands should exist and have read and execute access.
 Connection to example.com closed.
 </code></pre>
 <p>Perfect!</p>
-<h3>Conclusion</h3>
-<p>At this point, your git server is fully usable, and you can begin to push, pull, etc. However, you might also want a frontend to browse your repositories and make them discoverable on the web.</p>
-<h2>How to setup cgit for a git web frontend</h2>
+<h3>Next Steps</h3>
+<p>At this point, your git server is fully usable, and you can begin to push, pull, etc. However, you might also want a front-end to browse your repositories and make them discoverable on the web.</p>
+<h2>How to Set up Cgit for a Git Web Front-End</h2>
+<p>Install the necessary packages:</p>
 <pre><code>apt install nginx certbot fcgiwrap cgit
 </code></pre>
-<p>Generate a tls certificate for your git domain, then create a cron job to auto renew it.</p>
+<p>Generate a tls certificate for your git domain, then create a cron job to auto-renew it.</p>
 <pre><code>certbot certonly --standalone --register-unsafely-without-email -d git.example.com
 crontab -e
 </code></pre>
@@ -110,7 +121,7 @@ crontab -e
 	}
 }
 </code></pre>
-<p>Now it's time to edit the cgit config to make the frontend your own. Mine is located at /etc/cgitrc. Here's an example of my config:</p>
+<p>Now it's time to edit the cgit config to make the front-end your own. Mine is located at /etc/cgitrc. Here's an example of my config:</p>
 <pre><code>#
 # cgit config
 # see cgitrc(5) for details
@@ -119,7 +130,7 @@ crontab -e
 logo=/logo.webp
 
 root-title=example
-root-desc=a web frontend for my git repositories
+root-desc=a web front-end for my git repositories
 
 favicon=
 css=/cgit.css
@@ -132,9 +143,21 @@ clone-prefix=https://git.example.com
 scan-path=/srv/git/
 virtual-root=/
 </code></pre>
-<p>It's possible you need to add the nginx user to the www-data group (root if you never created one). Otherwise, the frontend will display 502 Bad Gateway instead of cgit.</p>
+<p>It's more than likely you will need to add the nginx user to the www-data group (root if you never created one). Otherwise, the front-end will display "502 Bad Gateway" instead of cgit.</p>
 <p>Run this command to do so:</p>
 <pre><code>usermod -aG www-data &lt;nginx-user&gt;
 </code></pre>
-<h2>Closing</h2>
-<p>If you followed the steps, you now have a working self-hosted git server and read-only frontend to view and share your repositories. Personally, I feel like this was a pretty simple setup and is definitely worth investing time into for the purpose of decentralization (as long as you chose something like AWS as your cloud provider lol).</p>
+<p>It's time to restart nginx and check out the front-end. Use this command to restart it:</p>
+<pre><code>systemctl restart nginx
+</code></pre>
+<p>If you open git.example.com now, you might notice under "Owner" it says "git." To change this to your name, enter the following command on your server:</p>
+<pre><code>usermod -c "new_name" git
+</code></pre>
+<h2>Conclusion</h2>
+<p>If you followed the steps, you now have a working self-hosted git server and read-only front-end to view and share your repositories. If you made it, I hope you agree this is a pretty simple setup and is definitely worth investing time into for many reasons.</p>
+			</div>
+			</div>
+		</main>
+	</body>
+</html>
+
