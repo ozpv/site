@@ -37,14 +37,14 @@ git init --bare
 <p>On your home computer, set up a git repo as well.</p>
 <pre><code>mkdir repo
 cd repo
-git init --bare
+git init
 git remote add origin git@example.com:/srv/git/repo.git
 </code></pre>
-<p>Make some changes. For example, create a file, and try git push. It should work.</p>
+<p>Make some changes. For example, create a file and try git push. It should work.</p>
 <pre><code>touch file.txt
 git add .
 git commit -m "changes"
-git push origin master
+git push origin main 
 </code></pre>
 <p>The git user is no longer required to be a part of the sudo group. We just needed it for a few of the commands above. Remove it.</p>
 <pre><code>deluser git sudo
@@ -66,7 +66,7 @@ o
 <p>Finally, prevent port forwarding by prepending this to each key in ~/.ssh/authorized_keys in the git user directory.</p>
 <pre><code>no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty
 </code></pre>
-<p>Attempting to login as git using ssh <a href="mailto:git@example.com">git@example.com</a> should output an error and close the connection, such as this one:</p>
+<p>Attempting to login as git using ssh <a href="mailto:git@example.com">git@example.com</a> should output an error such as this one and close the connection.</p>
 <pre><code>fatal: Interactive git shell is not enabled.
 hint: ~/git-shell-commands should exist and have read and execute access.
 Connection to example.com closed.
